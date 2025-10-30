@@ -102,7 +102,11 @@ class DichotomieSolver(Solver):
         fb = f(b)
         
         if fa * fb >= 0:
-            raise ValueError("f(a) et f(b) doivent avoir des signes opposés")
+            message = f"f(a) et f(b) doivent avoir des signes opposés pour la méthode de dichotomie.\n"
+            message += f"f({a}) = {fa:.6f}\n"
+            message += f"f({b}) = {fb:.6f}\n"
+            message += "Essayez de choisir un intervalle plus large ou des bornes différentes."
+            raise ValueError(message)
         
         for n in range(self.max_iter):
             c = (a + b) / 2
@@ -683,8 +687,13 @@ def main():
                 
                 if methode == "Dichotomie":
                     st.info(f"🔍 Recherche sur l'intervalle [{a}, {b}]")
-                    solver = DichotomieSolver(tolerance=tolerance, max_iter=max_iter)
-                    racine, nb_iter, converged = solver.solve(f, a, b)
+                    try:
+                        solver = DichotomieSolver(tolerance=tolerance, max_iter=max_iter)
+                        racine, nb_iter, converged = solver.solve(f, a, b)
+                    except ValueError as e:
+                        st.error(str(e))
+                        st.info("💡 Conseil : Pour la méthode de dichotomie, assurez-vous que f(a) et f(b) ont des signes opposés. "
+                               "Cela garantit qu'il existe une racine dans l'intervalle.")
                     
                 elif methode == "Point Fixe":
                     st.info(f"🔍 Itération depuis x₀ = {x0}")
