@@ -540,6 +540,15 @@ def analyze_rounding_errors(f, methode_class, x0_or_interval, tolerance=1e-6):
             df, _ = calculate_derivative(sp.sympify("exp(x) - 3*x"))
             racine_double, _, _ = solver_double.solve(f, df, x0_or_interval)
             racine_simple, _, _ = solver_simple.solve(f, df, x0_or_interval)
+        elif methode_class == SecanteSolver:
+            # Accept either a tuple (x0, x1) or a single x0 (use x0 + 0.1 as default x1)
+            if isinstance(x0_or_interval, (list, tuple)) and len(x0_or_interval) >= 2:
+                x0, x1 = x0_or_interval[0], x0_or_interval[1]
+            else:
+                x0 = x0_or_interval
+                x1 = x0 + 0.1
+            racine_double, _, _ = solver_double.solve(f, x0, x1)
+            racine_simple, _, _ = solver_simple.solve(f, x0, x1)
         else:
             racine_double, _, _ = solver_double.solve(f, x0_or_interval)
             racine_simple, _, _ = solver_simple.solve(f, x0_or_interval)
