@@ -581,7 +581,17 @@ def main():
     st.sidebar.subheader("📝 Exemples prédéfinis")
     exemple = st.sidebar.selectbox(
         "Charger un exemple",
-        ["Personnalisé", "exp(x) = 3x", "x³ - 4x + 1 = 0", "sin(x) = x/2", "x² - 2 = 0", "cos(x) - x = 0"]
+        ["Personnalisé",
+         "1) Polynôme: x³ - 2x - 5",
+         "2) Transcendante: exp(-x) - x",
+         "3) Trigonométrique: sin(x) + cos(x)",
+         "4) Racine: sqrt(x) - 5",
+         "5) Logarithmique: log(x) - 1",
+         "6) Rationnelle: 1/x - 2",
+         "7) Composée: sin(x²) + x - 1",
+         "8) Multiple: x³ - 6x² + 11x - 6",
+         "9) Exponentielle: 2^x - 8",
+         "10) Trigonométrique 2: tan(x) - x"]
     )
     
     # Configuration selon l'exemple
@@ -720,24 +730,40 @@ def main():
                 
                 col_r1, col_r2, col_r3, col_r4 = st.columns(4)
                 with col_r1:
-                    st.metric("Racine trouvée", f"{racine:.10f}")
+                    # Affichage sûr: éviter le formatage d'un None
+                    racine_aff = f"{racine:.10f}" if racine is not None else "N/A"
+                    st.metric("Racine trouvée", racine_aff)
                 with col_r2:
                     st.metric("Itérations", nb_iter)
                 with col_r3:
-                    st.metric("Temps (ms)", f"{solver.temps_execution*1000:.4f}")
+                    # Temps d'exécution peut être indisponible si le solveur n'a pas été créé
+                    if solver is not None and hasattr(solver, 'temps_execution'):
+                        try:
+                            temps_ms = f"{solver.temps_execution*1000:.4f}"
+                        except Exception:
+                            temps_ms = "N/A"
+                    else:
+                        temps_ms = "N/A"
+                    st.metric("Temps (ms)", temps_ms)
                 with col_r4:
                     if converged:
                         st.success("✅ Convergé")
                     else:
                         st.warning("⚠️ Max itérations")
                 
-                # Vérification
-                if methode == "Point Fixe":
-                    verif = abs(racine - g(racine))
-                    st.info(f"**Vérification:** |x - g(x)| = {verif:.2e}")
+                # Vérification — uniquement si une racine a été trouvée
+                if racine is not None:
+                    try:
+                        if methode == "Point Fixe":
+                            verif = abs(racine - g(racine))
+                            st.info(f"**Vérification:** |x - g(x)| = {verif:.2e}")
+                        else:
+                            verif = abs(f(racine))
+                            st.info(f"**Vérification:** |f(x)| = {verif:.2e}")
+                    except Exception as e:
+                        st.info("Vérification impossible: erreur lors du calcul du résidu.")
                 else:
-                    verif = abs(f(racine))
-                    st.info(f"**Vérification:** |f(x)| = {verif:.2e}")
+                    st.info("Vérification impossible: aucune racine trouvée pour effectuer la vérification.")
                 
                 # Tableau d'itérations
                 st.markdown("---")
@@ -759,15 +785,33 @@ def main():
                 st.markdown("---")
                 st.subheader("📈 Visualisation détaillée")
                 
-                # Déterminer les bornes pour le graphe
-                if methode == "Dichotomie":
-                    x_min_plot, x_max_plot = a - 0.5, b + 0.5
-                else:
-                    x_min_plot = min(racine - 2, x0 - 1)
-                    x_max_plot = max(racine + 2, x0 + 1)
-                
+                # Déterminer les bornes pour le graphe (tolérance si racine manquante)
+                try:
+                    if methode == "Dichotomie":
+                        x_min_plot, x_max_plot = a - 0.5, b + 0.5
+                    else:
+                        if racine is not None:
+                            x_min_plot = min(racine - 2, x0 - 1)
+                            x_max_plot = max(racine + 2, x0 + 1)
+                        else:
+                            # fallback: utiliser x0 si disponible, sinon intervalle par défaut
+                            try:
+                                x_min_plot = x0 - 3
+                                x_max_plot = x0 + 3
+                            except Exception:
+                                x_min_plot, x_max_plot = -5, 5
+                except Exception:
+                    x_min_plot, x_max_plot = -5, 5
+
+                # Historique sûr
+                try:
+                    hist = solver.get_historique_df()
+                    hist_list = solver.historique
+                except Exception:
+                    hist_list = None
+
                 fig = plot_function_detailed(f, x_min_plot, x_max_plot, racine, 
-                                            solver.historique, methode, show_iterations=True)
+                                            hist_list, methode, show_iterations=True)
                 st.pyplot(fig)
                 
             except Exception as e:
