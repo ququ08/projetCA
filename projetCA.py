@@ -100,11 +100,25 @@ class DichotomieSolver(Solver):
         
         fa = f(a)
         fb = f(b)
-        
-        if fa * fb >= 0:
+
+        # Ensure returned values are real scalars. Attempt to cast to float to validate.
+        try:
+            fa_f = float(fa)
+            fb_f = float(fb)
+        except Exception:
+            message = (
+                f"f(a) et f(b) doivent être des réels scalaires pour la méthode de dichotomie.\n"
+                f"f({a}) = {fa}\n"
+                f"f({b}) = {fb}\n"
+                "Remarque: votre fonction renvoie peut-être des valeurs complexes ou des tableaux. "
+                "Choisissez des bornes où f(a) et f(b) sont des réels (ou utilisez une autre méthode)."
+            )
+            raise ValueError(message)
+
+        if fa_f * fb_f >= 0:
             message = f"f(a) et f(b) doivent avoir des signes opposés pour la méthode de dichotomie.\n"
-            message += f"f({a}) = {fa:.6f}\n"
-            message += f"f({b}) = {fb:.6f}\n"
+            message += f"f({a}) = {fa_f:.6f}\n"
+            message += f"f({b}) = {fb_f:.6f}\n"
             message += "Essayez de choisir un intervalle plus large ou des bornes différentes."
             raise ValueError(message)
         
@@ -114,6 +128,14 @@ class DichotomieSolver(Solver):
                 c = np.float32(c)
             
             fc = f(c)
+            # Validate fc is a real scalar
+            try:
+                fc_f = float(fc)
+            except Exception:
+                raise ValueError(
+                    f"La fonction renvoie une valeur non réelle ou non scalaire en c={c}: f(c)={fc}. "
+                    "La méthode de dichotomie nécessite des valeurs réelles pour comparer les signes."
+                )
             erreur = (b - a) / 2
             
             self.historique.append({
@@ -126,17 +148,17 @@ class DichotomieSolver(Solver):
                 'Erreur_log': float(np.log10(abs(erreur) + 1e-16))
             })
             
-            if abs(fc) < self.tolerance or erreur < self.tolerance:
+            if abs(fc_f) < self.tolerance or erreur < self.tolerance:
                 self.temps_execution = time.time() - start_time
                 self.converged = True
                 return c, n + 1, True
             
-            if fa * fc < 0:
+            if fa_f * fc_f < 0:
                 b = c
-                fb = fc
+                fb = fc_f
             else:
                 a = c
-                fa = fc
+                fa = fc_f
         
         self.temps_execution = time.time() - start_time
         return c, self.max_iter, False
